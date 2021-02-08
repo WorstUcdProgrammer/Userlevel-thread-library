@@ -5,31 +5,76 @@
 #include "queue.h"
 
 struct queue {
-	/* TODO */
+	node_t head;
+	node_t tail;
+	int length;	
 };
+
+struct node {
+	void *data;
+	node_t next;
+};
+
+node_t node_create(void)
+{
+	node_t new_node;
+	new_node = (node_t) malloc(sizeof(struct node));
+	return new_node;
+}
 
 queue_t queue_create(void)
 {
-	/* TODO */
-	return NULL;
+	// initiate a new pointer to an empty queue
+	queue_t new_queue;
+	new_queue = (queue_t) malloc(sizeof(struct queue));
+	new_queue->length = 0;
+	// if allocating space fails, the new_queue will be a NULL pointer
+	return new_queue;
 }
 
 int queue_destroy(queue_t queue)
 {
-	/* TODO */
-	return -1;
+	if (queue == NULL || queue->length != 0) {
+		return -1;
+	} else {
+		free(queue);
+		return 0;
+	}
 }
 
 int queue_enqueue(queue_t queue, void *data)
 {
-	/* TODO */
-	return -1;
+	// if @queue or @data are NULL
+	if (queue == NULL || data == NULL) {
+		return -1;
+	} else if (queue_length(queue) == 0) {
+		node_t new_node = node_create();
+		new_node->data = data;
+		queue->head = new_node;
+		queue->tail = new_node;
+		queue->length++;
+	} else {
+		node_t new_node = node_create();
+		new_node->data = data;
+		queue->tail->next = new_node;
+		queue->tail = new_node;
+		queue->length++;
+	}
+	return 0;
 }
 
 int queue_dequeue(queue_t queue, void **data)
 {
-	/* TODO */
-	return -1;
+	if (queue == NULL || data == NULL || queue_length(queue) == 0) {
+		return -1;
+	} else {
+		node_t second_node = queue->head->next;
+		*data = &(queue->head->data);
+		free(queue->head);
+		queue->head = second_node;
+		queue->length--;
+		return 0;
+	}
 }
 
 int queue_delete(queue_t queue, void *data)
@@ -46,7 +91,10 @@ int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 
 int queue_length(queue_t queue)
 {
-	/* TODO */
-	return -1;
+	if (queue == NULL) {
+		return -1;
+	} else {
+		return queue->length;
+	}
 }
 

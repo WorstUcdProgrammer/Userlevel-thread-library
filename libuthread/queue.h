@@ -13,6 +13,22 @@
 typedef struct queue* queue_t;
 
 /*
+ *
+ * node_t - Node type
+ * 
+ * A node is a data structure that holds the value of itself as well as the
+ * address of the next node
+ */
+typedef struct node* node_t;
+
+/*
+ * node_create - Allocate an empty node
+ * 
+ * Creat a new object of type 'struct node' and return its address.
+ */
+node_t node_create(void);
+
+/*
  * queue_create - Allocate an empty queue
  *
  * Create a new object of type 'struct queue' and return its address.
