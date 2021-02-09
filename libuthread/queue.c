@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "queue.h"
 
@@ -83,14 +84,26 @@ int queue_delete(queue_t queue, void *data)
 	if (queue == NULL || data == NULL) {
 		return -1;
 	} else {
-		node_t current_node = queue->head;
-		if (current_node->data == data) {
-			node_t second_node = current_node->next;
-			free(current_node);
+		if (queue->head == data) {
+			node_t second_node = queue->head->next;
+			free(queue->head);
 			queue->head = second_node;
 			queue->length--;
+			// if want to delete data that is both head and tail
+			if (!queue->length) {
+				queue->tail = NULL;
+			}
+			return 0;
+		} else if (queue->tail == data) {
+			node_t current_node = queue->head;
+			while (current_node->next->next != NULL) {
+				current_node = current_node->next;
+			}
+			free(current_node->next);
+			queue->tail = current_node;
 			return 0;
 		} else {
+			node_t current_node = queue->head;
 			while (current_node->next != NULL) {
 				if (current_node->next->data == data) {
 					node_t next_next_node = current_node->next->next;
@@ -99,6 +112,7 @@ int queue_delete(queue_t queue, void *data)
 					queue->length--;
 					return 0;
 				}
+				current_node = current_node->next;
 			}
 			return -1;
 		}
@@ -112,6 +126,7 @@ int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 	} else {
 		node_t current_node = queue->head;
 		while (current_node != NULL) {
+			node_t next_node = current_node->next;
 			int func_return = (*func)(queue, current_node->data, arg);
 			if (func_return == 1) {
 				if (data != NULL) {
@@ -119,7 +134,7 @@ int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 				}
 				return 0;
 			}
-			current_node = current_node->next;
+			current_node = next_node;
 		}
 	}
 	return 0;

@@ -1,8 +1,8 @@
 # Target programs
 programs := \
 	queue_tester_example.x \
-	uthread_hello.x \
-	uthread_yield.x
+	#uthread_hello.x \
+	#uthread_yield.x
 
 # User-level thread library
 UTHREADLIB := libuthread
