@@ -1,19 +1,27 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #include "queue.h"
+
+struct node {
+	void *data;
+	struct node *next;
+};
+
+/*
+ *
+ * node_t - Node type
+ * 
+ * A node is a data structure that holds the value of itself as well as the
+ * address of the next node
+ */
+typedef struct node* node_t;
 
 struct queue {
 	node_t head;
 	node_t tail;
 	int length;	
-};
-
-struct node {
-	void *data;
-	node_t next;
 };
 
 node_t node_create(void)

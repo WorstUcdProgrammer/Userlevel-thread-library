@@ -38,7 +38,7 @@ static void uthread_ctx_bootstrap(uthread_func_t func)
 	/*
 	 * Enable interrupts right after being elected to run for the first time
 	 */
-	preempt_enable();
+	//preempt_enable(); !!!!!!!!!!!!!!!HEREHREHEREHREHREHRERHH
 
 	/* Execute thread and when done, exit with the return value */
 	uthread_exit(func());
