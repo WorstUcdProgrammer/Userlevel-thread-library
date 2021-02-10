@@ -174,10 +174,6 @@ static int find_thread(queue_t q, void *data, void* arg)
 
 int uthread_join(uthread_t tid, int *retval)
 {
-	if (retval != NULL)
-	{
-		return 0;
-	}
 	tcb_t ptr = NULL;
 	queue_iterate(all_threads, find_thread, (void*)&tid, (void**)&ptr);
 	if (ptr == NULL || tid == (uthread_t) 0) {
@@ -187,6 +183,9 @@ int uthread_join(uthread_t tid, int *retval)
 			return -1;
 		} else if (ptr->state == ZOMBIE) {
 			free_resource(ptr);
+			if (retval != NULL) {
+				*retval = ptr->retval;
+			}
 		} else {
 			tcb_t previous;
 			tcb_t data;
