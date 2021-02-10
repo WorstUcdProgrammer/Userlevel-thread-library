@@ -28,4 +28,4 @@ context.o : context.c private.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -f $(lib) $(QUEUE).o $(UTHREAD).o context.o
+	rm -f $(lib) $(QUEUE).o $(UTHREAD).o context.o core

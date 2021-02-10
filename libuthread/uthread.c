@@ -15,12 +15,14 @@ typedef struct queue* queue_t;
 
 int uthread_counter = 0;
 queue_t queue;
-queue_t zombie_queue;
+queue_t all_threads;
 
 enum uthread_states{
 	WAITING,
 	RUNNING,
-	ZOMBIE
+	ZOMBIE,
+	BLOCKED,
+	DELETED
 };
 
 struct tcb {
@@ -29,11 +31,25 @@ struct tcb {
 	void *top_of_stack;
 	enum uthread_states state;
 	int retval;
+	struct tcb *blocked;
 };
 
 typedef struct tcb* tcb_t;
 
 tcb_t current_thread;
+
+void free_resource(tcb_t dead_tcb)
+{
+	free(dead_tcb->context);
+	uthread_ctx_destroy_stack(dead_tcb->top_of_stack);
+	if (dead_tcb->blocked != NULL) {
+		dead_tcb->blocked->state = WAITING;
+		queue_enqueue(queue, dead_tcb->blocked);
+		dead_tcb->blocked = NULL;
+	}
+	//queue_delete(all_threads, dead_tcb);
+	dead_tcb->state = DELETED;
+}
 
 int uthread_start(int preempt)
 {
@@ -41,7 +57,7 @@ int uthread_start(int preempt)
 		return 0;
 	}
 	queue = queue_create();
-	zombie_queue = queue_create();
+	all_threads = queue_create();
 	tcb_t new_tcb = (tcb_t) malloc(sizeof(struct tcb));
 	if (new_tcb == NULL) {
 		return -1;
@@ -53,14 +69,23 @@ int uthread_start(int preempt)
 	return 0;
 }
 
+static int delete_all(queue_t q, void *data, void *arg)
+{
+    (void)q;
+	if (data == NULL || arg == NULL) {
+		free(data);
+	}
+    return 0;
+}
+
 int uthread_stop(void)
 {
-	if (queue_length(queue) > 0 || queue_length(zombie_queue) > 0) {
+	if (queue_length(queue) > 0 || queue_length(all_threads) > 1) {
 		return -1;
 	} else {
-		free(current_thread);
 		free(queue);
-		free(zombie_queue);
+		free(all_threads);
+		queue_iterate(all_threads, delete_all, NULL, NULL);
 		return 0;
 	}
 }
@@ -84,7 +109,9 @@ int uthread_create(uthread_func_t func)
 	uthread_counter++;
 	new_tcb->TID = (uthread_t) uthread_counter;
 	new_tcb->state = WAITING;
+	new_tcb->blocked = NULL;
 	queue_enqueue(queue, new_tcb);
+	queue_enqueue(all_threads, new_tcb);
 	return (int) new_tcb->TID;
 }
 
@@ -110,32 +137,69 @@ void uthread_exit(int retval)
 {
 	current_thread->state = ZOMBIE;
 	current_thread->retval = retval;
-	queue_enqueue(zombie_queue, current_thread);
-	if (queue_length(queue) != 0) {
-		tcb_t data;
-		tcb_t previous;
-		queue_dequeue(queue, (void **)&data);
-		data->state = RUNNING;
-		previous = current_thread;
-		current_thread = data;
-		uthread_ctx_switch(previous->context, current_thread->context);
+	if (queue_length(all_threads) > 1) {
+		printf("%d exited\n", current_thread->TID);
+		if (queue_length(queue) != 0) {
+			tcb_t data;
+			tcb_t previous;
+			queue_dequeue(queue, (void **)&data);
+			data->state = RUNNING;
+			previous = current_thread;
+			current_thread = data;
+			if (previous->blocked != NULL) {
+				free_resource(previous);
+			}
+			uthread_ctx_switch(previous->context, current_thread->context);
+		} else {
+			tcb_t previous = current_thread;
+			tcb_t new_tcb = current_thread->blocked;
+			current_thread->blocked = NULL;
+			current_thread = new_tcb;
+			free_resource(previous);
+			uthread_ctx_switch(previous->context, current_thread->context);
+		}
 	}
+}
+
+static int find_thread(queue_t q, void *data, void* arg)
+{
+	uthread_t a = ((tcb_t) data)->TID;
+	int *match = (int*) arg;
+	(void)q;
+ 
+	if ((int) a == *match)
+		return 1;
+	
+	return 0;
 }
 
 int uthread_join(uthread_t tid, int *retval)
 {
-	while (1) {
-		if (queue_length(queue) == 0) {
-			if (retval == NULL || tid == 0) {
-				break;
-				return -1;
-			}
-			break;
-			return -1;
-		} else {
-			uthread_yield();
-		}
+	if (retval != NULL)
+	{
+		return 0;
 	}
-	return 0;
+	tcb_t ptr = NULL;
+	queue_iterate(all_threads, find_thread, (void*)&tid, (void**)&ptr);
+	if (ptr == NULL || tid == (uthread_t) 0) {
+		return -1;
+	} else {
+		if (ptr->blocked != NULL || ptr->state == DELETED) {
+			return -1;
+		} else if (ptr->state == ZOMBIE) {
+			free_resource(ptr);
+		} else {
+			tcb_t previous;
+			tcb_t data;
+			queue_dequeue(queue, (void **)&data);
+			data->state = RUNNING;
+			previous = current_thread;
+			ptr->blocked = current_thread;
+			current_thread->state = BLOCKED;
+			current_thread = data;
+			uthread_ctx_switch(previous->context, current_thread->context);
+		}
+		return 0;
+	}
 }
 
