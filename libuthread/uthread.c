@@ -138,7 +138,6 @@ void uthread_exit(int retval)
 	current_thread->state = ZOMBIE;
 	current_thread->retval = retval;
 	if (queue_length(all_threads) > 1) {
-		printf("%d exited\n", current_thread->TID);
 		if (queue_length(queue) != 0) {
 			tcb_t data;
 			tcb_t previous;
@@ -202,4 +201,3 @@ int uthread_join(uthread_t tid, int *retval)
 		return 0;
 	}
 }
-
