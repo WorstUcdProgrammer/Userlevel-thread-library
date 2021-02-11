@@ -117,15 +117,20 @@ int uthread_create(uthread_func_t func)
 
 void uthread_yield(void)
 {
-	current_thread->state = WAITING;
-	tcb_t data;
-	tcb_t previous;
-	queue_dequeue(queue, (void **)&data);
-	queue_enqueue(queue, current_thread);
-	data->state = RUNNING;
-	previous = current_thread;
-	current_thread = data;
-	uthread_ctx_switch(previous->context, current_thread->context);
+	// if there are no more other threads available to run
+	// continue to run the current thread
+	// thus, yield doesn't make any changes
+	if (queue_length(queue) > 0) {
+		current_thread->state = WAITING;
+		tcb_t data;
+		tcb_t previous;
+		queue_dequeue(queue, (void **)&data);
+		queue_enqueue(queue, current_thread);
+		data->state = RUNNING;
+		previous = current_thread;
+		current_thread = data;
+		uthread_ctx_switch(previous->context, current_thread->context);
+	}
 }
 
 uthread_t uthread_self(void)
