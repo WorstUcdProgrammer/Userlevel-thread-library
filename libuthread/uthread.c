@@ -16,6 +16,7 @@ typedef struct queue* queue_t;
 int uthread_counter = 0;
 queue_t queue;
 queue_t all_threads;
+int preempt_flag;
 
 enum uthread_states{
 	WAITING,
@@ -48,14 +49,14 @@ void free_resource(tcb_t dead_tcb)
 		queue_enqueue(queue, dead_tcb->blocked);
 		dead_tcb->blocked = NULL;
 	}
-	//queue_delete(all_threads, dead_tcb);
 	dead_tcb->state = DELETED;
 }
 
 int uthread_start(int preempt)
 {
+	preempt_flag = preempt;
 	if (preempt) {
-		return 0;
+		preempt_start();
 	}
 	queue = queue_create();
 	all_threads = queue_create();
@@ -87,12 +88,16 @@ int uthread_stop(void)
 		free(queue);
 		free(all_threads);
 		queue_iterate(all_threads, delete_all, NULL, NULL);
+		if (preempt_flag) {
+			preempt_stop();
+		}
 		return 0;
 	}
 }
 
 int uthread_create(uthread_func_t func)
 {
+	preempt_disable();
 	if (uthread_counter >= USHRT_MAX) {
 		return -1;
 	}
@@ -113,6 +118,7 @@ int uthread_create(uthread_func_t func)
 	new_tcb->blocked = NULL;
 	queue_enqueue(queue, new_tcb);
 	queue_enqueue(all_threads, new_tcb);
+	preempt_enable();
 	return (int) new_tcb->TID;
 }
 
@@ -121,6 +127,7 @@ void uthread_yield(void)
 	// if there are no more other threads available to run
 	// continue to run the current thread
 	// thus, yield doesn't make any changes
+	preempt_disable();
 	if (queue_length(queue) > 0) {
 		current_thread->state = WAITING;
 		tcb_t data;
@@ -130,8 +137,10 @@ void uthread_yield(void)
 		data->state = RUNNING;
 		previous = current_thread;
 		current_thread = data;
+		preempt_enable();
 		uthread_ctx_switch(previous->context, current_thread->context);
 	}
+	preempt_enable();
 }
 
 uthread_t uthread_self(void)
@@ -141,6 +150,7 @@ uthread_t uthread_self(void)
 
 void uthread_exit(int retval)
 {
+	preempt_disable();
 	current_thread->state = ZOMBIE;
 	current_thread->retval = retval;
 	if (queue_length(all_threads) > 1) {
@@ -157,6 +167,7 @@ void uthread_exit(int retval)
 			if (previous->retval_address != NULL) {
 				*previous->retval_address = previous->retval;
 			}
+			preempt_enable();
 			uthread_ctx_switch(previous->context, current_thread->context);
 		} else {
 			tcb_t previous = current_thread;
@@ -167,9 +178,11 @@ void uthread_exit(int retval)
 			if (previous->retval_address != NULL) {
 				*previous->retval_address = previous->retval;
 			}
+			preempt_enable();
 			uthread_ctx_switch(previous->context, current_thread->context);
 		}
 	}
+	preempt_enable();
 }
 
 static int find_thread(queue_t q, void *data, void* arg)
@@ -187,11 +200,13 @@ static int find_thread(queue_t q, void *data, void* arg)
 int uthread_join(uthread_t tid, int *retval)
 {
 	tcb_t ptr = NULL;
+	preempt_disable();
 	queue_iterate(all_threads, find_thread, (void*)&tid, (void**)&ptr);
 	if (ptr == NULL || tid == (uthread_t) 0) {
 		return -1;
 	} else {
 		if (ptr->blocked != NULL || ptr->state == DELETED) {
+			preempt_enable();
 			return -1;
 		} else if (ptr->state == ZOMBIE) {
 			free_resource(ptr);
@@ -208,8 +223,10 @@ int uthread_join(uthread_t tid, int *retval)
 			current_thread->state = BLOCKED;
 			current_thread = data;
 			current_thread->retval_address = retval;
+			preempt_enable();
 			uthread_ctx_switch(previous->context, current_thread->context);
 		}
+		preempt_enable();
 		return 0;
 	}
 }
