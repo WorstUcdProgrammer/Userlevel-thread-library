@@ -31,6 +31,7 @@ struct tcb {
 	void *top_of_stack;
 	enum uthread_states state;
 	int retval;
+	int* retval_address;
 	struct tcb *blocked;
 };
 
@@ -153,6 +154,9 @@ void uthread_exit(int retval)
 			if (previous->blocked != NULL) {
 				free_resource(previous);
 			}
+			if (previous->retval_address != NULL) {
+				*previous->retval_address = previous->retval;
+			}
 			uthread_ctx_switch(previous->context, current_thread->context);
 		} else {
 			tcb_t previous = current_thread;
@@ -160,6 +164,9 @@ void uthread_exit(int retval)
 			current_thread->blocked = NULL;
 			current_thread = new_tcb;
 			free_resource(previous);
+			if (previous->retval_address != NULL) {
+				*previous->retval_address = previous->retval;
+			}
 			uthread_ctx_switch(previous->context, current_thread->context);
 		}
 	}
@@ -200,6 +207,7 @@ int uthread_join(uthread_t tid, int *retval)
 			ptr->blocked = current_thread;
 			current_thread->state = BLOCKED;
 			current_thread = data;
+			current_thread->retval_address = retval;
 			uthread_ctx_switch(previous->context, current_thread->context);
 		}
 		return 0;
