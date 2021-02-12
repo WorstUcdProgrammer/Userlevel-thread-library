@@ -35,9 +35,7 @@ void preempt_start(void)
 	 */
 	preempt.sa_handler = handler;
 	sigaction(SIGVTALRM, &preempt, &old_handler);
-	timer.it_interval.tv_sec = 0;
 	timer.it_interval.tv_usec = 10000;
-	timer.it_value.tv_sec = 0;
 	timer.it_value.tv_usec = 10000;
 	setitimer(ITIMER_VIRTUAL, &timer, &old_timer);
 	sigemptyset(&ss);

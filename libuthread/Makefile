@@ -4,31 +4,22 @@ CC := gcc
 # Flags
 CFLAGS := -Wall -Wextra -Werror
 
-# Queue
-QUEUE := queue
-
-# UThread
-UTHREAD := uthread
-
 # Target library
 lib := libuthread.a
 
+# object files
+objs := queue.o uthread.o context.o preempt.o
+
 all: $(lib)
 
-$(lib): $(QUEUE).o $(UTHREAD).o context.o preempt.o
+deps := $(patsubset %.o, %.d, $(objs))
+-include $(deps)
+
+$(lib): $(objs)
 	ar rcs $@ $^
 
-$(QUEUE).o: $(QUEUE).c $(QUEUE).h
-	$(CC) $(CFLAGS) -o $@ -c $<
-
-$(UTHREAD).o : $(UTHREAD).c $(UTHREAD).h context.o preempt.o
-	$(CC) $(CFLAGS) -o $@ -c $<
-
-context.o : context.c private.h
-	$(CC) $(CFLAGS) -o $@ -c $<
-
-preempt.o : preempt.c private.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f $(lib) $(QUEUE).o $(UTHREAD).o context.o core
+	rm -f $(lib) $(objs) $(deps)
