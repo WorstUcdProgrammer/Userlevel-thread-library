@@ -1,13 +1,6 @@
-# Compiler
 CC := gcc
-
-# Flags
 CFLAGS := -Wall -Wextra -Werror
-
-# Target library
 lib := libuthread.a
-
-# object files
 objs := queue.o uthread.o context.o preempt.o
 
 all: $(lib)
