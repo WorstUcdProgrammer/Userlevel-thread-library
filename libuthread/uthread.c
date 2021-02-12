@@ -202,7 +202,7 @@ int uthread_join(uthread_t tid, int *retval)
 	tcb_t ptr = NULL;
 	preempt_disable();
 	queue_iterate(all_threads, find_thread, (void*)&tid, (void**)&ptr);
-	if (ptr == NULL || tid == (uthread_t) 0 || tid == uthread_self) {
+	if (ptr == NULL || tid == (uthread_t) 0 || tid == uthread_self()) {
 		return -1;
 	} else {
 		if (ptr->blocked != NULL || ptr->state == DELETED) {
