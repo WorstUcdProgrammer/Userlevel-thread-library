@@ -110,9 +110,9 @@ void test_iterator(void)
 
 int main(void)
 {
-	//test_create();
-	//test_queue_simple();
-	//test_queue_delete();
+	test_create();
+	test_queue_simple();
+	test_queue_delete();
 	test_iterator();
 
 	return 0;
