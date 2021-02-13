@@ -90,6 +90,8 @@ void test_iterator(void)
     size_t i;
     int *ptr;
 
+	fprintf(stderr, "*** TEST test_iterator ***\n");
+
     /* Initialize the queue and enqueue items */
     q = queue_create();
     for (i = 0; i < sizeof(data) / sizeof(data[0]); i++)

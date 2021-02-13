@@ -39,8 +39,8 @@ dequeue will mostly require only access to the head.
 We think there exist a limitation that we could fix. In order to determine if 
 the data that we want to delete exists. It could be done easily by calling the 
 queue_iterate with a custom function to find the item. But instead, we chose to 
-use the while loop to manually iterate, since at that time, we have not started 
-to think about how queue_iterate works.
+use the while loop to manually iterate, because it provided us access to do 
+backtracking to track the previous node inside the queue
 
 ### Uthread
 
